@@ -196,31 +196,48 @@ pipeline {
       }
     }
 
-    stage('deploy to dev') {
-      steps {
-        container('maven') {
-          input(id: 'deploy-to-dev', message: 'deploy to dev?')
-          withCredentials([kubeconfigContent(credentialsId : 'KUBECONFIG_CREDENTIAL_ID' ,variable : 'KUBECONFIG_CONFIG' ,)]) {
-            sh 'mkdir -p ~/.kube/'
-            sh 'echo "$KUBECONFIG_CONFIG" > ~/.kube/config'
-            sh 'envsubst < deploy/dev-ol/deploy.yaml | kubectl apply -f -'
+    stage('default-4') {
+      parallel {
+        stage('部署ruoyi-auth') {
+          agent none
+          steps {
+            kubernetesDeploy(enableConfigSubstitution: true, deleteResource: false, kubeconfigId: "$KUBECONFIG_CREDENTIAL_ID", configs: 'ruoyi-auth/deploy/**')
           }
-
         }
 
-      }
-    }
-
-    stage('deploy to production') {
-      steps {
-        container('maven') {
-          input(id: 'deploy-to-production', message: 'deploy to production?')
-          withCredentials([kubeconfigContent(credentialsId : 'KUBECONFIG_CREDENTIAL_ID' ,variable : 'KUBECONFIG_CONFIG' ,)]) {
-            sh 'mkdir -p ~/.kube/'
-            sh 'echo "$KUBECONFIG_CONFIG" > ~/.kube/config'
-            sh 'envsubst < deploy/prod-ol/deploy.yaml | kubectl apply -f -'
+        stage('部署ruoyi-gateway') {
+          agent none
+          steps {
+            kubernetesDeploy(enableConfigSubstitution: true, deleteResource: false, kubeconfigId: "$KUBECONFIG_CREDENTIAL_ID", configs: 'ruoyi-gateway/deploy/**')
           }
+        }
 
+        stage('部署ruoyi-file') {
+          agent none
+          steps {
+            kubernetesDeploy(enableConfigSubstitution: true, deleteResource: false, kubeconfigId: "$KUBECONFIG_CREDENTIAL_ID", configs: 'ruoyi-modules/ruoyi-file/deploy/**')
+          }
+        }
+
+        stage('部署ruoyi-job') {
+          agent none
+          steps {
+            kubernetesDeploy(enableConfigSubstitution: true, deleteResource: false, kubeconfigId: "$KUBECONFIG_CREDENTIAL_ID", configs: 'ruoyi-modules/ruoyi-job/deploy/**')
+          }
+        }
+
+        stage('部署ruoyi-system') {
+          agent none
+          steps {
+            kubernetesDeploy(enableConfigSubstitution: true, deleteResource: false, kubeconfigId: "$KUBECONFIG_CREDENTIAL_ID", configs: 'ruoyi-modules/ruoyi-system/deploy/**')
+          }
+        }
+
+        stage('部署ruoyi-monitor') {
+          agent none
+          steps {
+            kubernetesDeploy(enableConfigSubstitution: true, deleteResource: false, kubeconfigId: "$KUBECONFIG_CREDENTIAL_ID", configs: 'ruoyi-visual/ruoyi-monitor/deploy/**')
+          }
         }
 
       }
